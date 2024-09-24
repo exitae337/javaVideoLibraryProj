@@ -1,8 +1,6 @@
 package daoInterface;
 
 import Entities.UserRole;
-
-import javax.management.relation.Role;
 import java.sql.SQLException;
 import java.util.List;
 

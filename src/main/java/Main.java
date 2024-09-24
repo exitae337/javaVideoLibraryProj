@@ -1,11 +1,9 @@
 import Entities.User;
 import Entities.UserRole;
-import daoInterface.RoleDAO;
+
 import daoInterface.implementation.RoleDAOImpl;
 import daoInterface.implementation.UserDAOImpl;
-import database.ConnectorToDatabase;
 
-import javax.management.relation.Role;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;

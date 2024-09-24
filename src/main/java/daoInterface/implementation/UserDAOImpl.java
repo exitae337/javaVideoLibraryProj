@@ -1,7 +1,6 @@
 package daoInterface.implementation;
 
 import Entities.User;
-import Entities.UserRole;
 import daoInterface.UserDAO;
 import database.ConnectorToDatabase;
 
