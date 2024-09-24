@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  db:
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./sqlScriptForDatabase.sql:/docker-entrypoint-initdb.d/sqlScriptForDatabase.sql
+    ports:
+      - "3333:3306"
