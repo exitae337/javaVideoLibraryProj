@@ -28,7 +28,7 @@ public class UserDAOImpl implements UserDAO {
             statement.setString(1, user.getFullName());
             statement.setString(2, user.getEmail());
             statement.setString(3, user.getPassword());
-            statement.setInt(4, user.getRole().getId());
+            statement.setInt(4, user.getRole());
             statement.executeUpdate();
         } catch (SQLException e) {
             if (e.getErrorCode() == 1062) {
@@ -59,7 +59,7 @@ public class UserDAOImpl implements UserDAO {
                 user.setFullName(rs.getString("user_fullname"));
                 user.setEmail(rs.getString("user_email"));
                 user.setPassword(rs.getString("user_password"));
-                user.setUserRole(getRoleByID(rs.getInt("user_role_id")));
+                user.setUserRole(rs.getInt("user_role_id"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -68,29 +68,6 @@ public class UserDAOImpl implements UserDAO {
             connectorToDatabase.closeConnection();
         }
         return user;
-    }
-
-    private UserRole getRoleByID(int userRoleId) throws SQLException {
-        String sqlRequest = "SELECT * FROM user_role WHERE role_id = ?";
-        UserRole role = null;
-
-        try {
-            connectorToDatabase = ConnectorToDatabase.getInstance();
-            PreparedStatement statement = connectorToDatabase.getConnection().prepareStatement(sqlRequest);
-            statement.setInt(1, userRoleId);
-            ResultSet rs = statement.executeQuery();
-            if(rs.next()) {
-                role = new UserRole();
-                role.setId(rs.getInt("role_id"));
-                role.setRoleName(rs.getString("role_name"));
-            }
-        } catch (SQLException e) {
-            System.out.println("Error in getting role id");
-            e.printStackTrace();
-        } finally {
-            connectorToDatabase.closeConnection();
-        }
-        return role;
     }
 
     @Override
@@ -107,11 +84,12 @@ public class UserDAOImpl implements UserDAO {
                 user.setFullName(rs.getString("user_fullname"));
                 user.setEmail(rs.getString("user_email"));
                 user.setPassword(rs.getString("user_password"));
-                user.setUserRole(getRoleByID(rs.getInt("user_role_id")));
+                user.setUserRole(rs.getInt("user_role_id"));
                 userList.add(user);
             }
         } catch (SQLException e) {
             System.out.println("Problem in getting all users from db!");
+            e.printStackTrace();
         } finally {
             connectorToDatabase.closeConnection();
         }
@@ -127,7 +105,7 @@ public class UserDAOImpl implements UserDAO {
             statement.setString(1, user.getFullName());
             statement.setString(2, user.getEmail());
             statement.setString(3, user.getPassword());
-            statement.setInt(4, user.getRole().getId());
+            statement.setInt(4, user.getRole());
             statement.setInt(5, user.getId());
             statement.executeUpdate();
         } catch (SQLException e) {

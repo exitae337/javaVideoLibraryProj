@@ -7,7 +7,7 @@ public class User {
     private String fullName;
     private String email;
     private String password;
-    private UserRole userRole;
+    private int userRole;
 
     public User() {}
     public int getId() {
@@ -27,7 +27,7 @@ public class User {
         return password;
     }
 
-    public UserRole getRole() {
+    public int getRole() {
         return userRole;
     }
 
@@ -49,7 +49,7 @@ public class User {
         this.password = password;
     }
 
-    public void setUserRole(UserRole userRole) {
+    public void setUserRole(int userRole) {
         this.userRole = userRole;
     }
 }
