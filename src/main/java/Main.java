@@ -1,9 +1,11 @@
 import Entities.User;
 import Entities.UserRole;
+import daoInterface.RoleDAO;
 import daoInterface.implementation.RoleDAOImpl;
 import daoInterface.implementation.UserDAOImpl;
 import database.ConnectorToDatabase;
 
+import javax.management.relation.Role;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,8 @@ public class Main {
         userRole.setId(1);
         userRole.setRoleName("admin");
 
+        //roleDAO.addRole(userRole);
+
         // First User setting
         user1.setFullName("Иван Иванов");
         user1.setEmail("mail2@mail.ru");
@@ -28,9 +32,6 @@ public class Main {
         // Adding USER
         //userDAO.addUser(user1);
 
-        // Get by ID
-        User user = userDAO.getUserByID(1);
-        System.out.println(user.getFullName());
 
         // Update User
 //        User newUser = new User();
@@ -43,7 +44,7 @@ public class Main {
 //        userDAO.updateUser(newUser);
 
         // DeleteUser
-        //userDAO.deleteUserByID(2);
+        userDAO.deleteUserByID(6);
 
         // Get all users
 //        List<User> users = new ArrayList<>();
@@ -62,6 +63,6 @@ public class Main {
 //        roleDAO.updateRole(role2);
 
         // Delete Role
-        roleDAO.deleteRoleByID(3);
+        //roleDAO.deleteRoleByID(3);
     }
 }

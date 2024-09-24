@@ -35,6 +35,7 @@ public class UserDAOImpl implements UserDAO {
                 System.out.println("User with this e-mail is already exists!");
             } else {
                 System.out.println("Problem with adding user");
+                e.printStackTrace();
             }
         } finally {
             connectorToDatabase.closeConnection();

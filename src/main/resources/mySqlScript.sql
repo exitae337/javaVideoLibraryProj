@@ -12,7 +12,7 @@ CREATE TABLE users(
 	user_email varchar(100) not null unique,
 	user_password varchar(20) not null,
 	user_role_id int not null,
-	foreign key (user_role_id) references userRole(role_id)
+	foreign key (user_role_id) references user_role(role_id)
 );
 
 CREATE TABLE genre_film(
@@ -35,12 +35,12 @@ CREATE TABLE films(
     film_id int identity(1,1) primary key not null,
     film_name varchar(100) not null unique,
     film_director int not null,
-    foreign key (film_director) references actorsAndDirectors(person_id),
+    foreign key (film_director) references actors_and_directors(person_id),
     film_start_date date not null,
     film_country int not null,
-    foreign key (film_country) references countryFilm(country_id),
+    foreign key (film_country) references country_film(country_id),
     film_genre int not null,
-    foreign key (film_genre) references genreFilm(genre_id)
+    foreign key (film_genre) references genre_film(genre_id)
 );
 
 CREATE TABLE film_to_actor(
@@ -48,7 +48,7 @@ CREATE TABLE film_to_actor(
     actor_to_film_id int not null,
     primary key (film_to_actor_id, actor_to_film_id),
     foreign key (film_to_actor_id) references films(film_id),
-    foreign key (actor_to_film_id) references actorsAndDirectors(person_id)
+    foreign key (actor_to_film_id) references actors_and_directors(person_id)
 );
 
 CREATE TABLE user_reviews(
