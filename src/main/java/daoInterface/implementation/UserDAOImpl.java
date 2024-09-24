@@ -70,7 +70,7 @@ public class UserDAOImpl implements UserDAO {
     }
 
     private UserRole getRoleByID(int userRoleId) throws SQLException {
-        String sqlRequest = "SELECT * FROM userRole WHERE role_id = ?";
+        String sqlRequest = "SELECT * FROM user_role WHERE role_id = ?";
         UserRole role = null;
 
         try {

@@ -5,7 +5,6 @@ import Entities.UserRole;
 import daoInterface.RoleDAO;
 import database.ConnectorToDatabase;
 
-import javax.management.relation.Role;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,7 +19,7 @@ public class RoleDAOImpl implements RoleDAO {
 
     @Override
     public void addRole(UserRole role) throws SQLException {
-        String sqlRequest = "INSERT INTO userRole (role_name) VALUES (?)";
+        String sqlRequest = "INSERT INTO user_role (role_name) VALUES (?)";
         try {
             connectorToDatabase = ConnectorToDatabase.getInstance();
             PreparedStatement statement = connectorToDatabase.getConnection().prepareStatement(sqlRequest);
@@ -40,7 +39,7 @@ public class RoleDAOImpl implements RoleDAO {
 
     @Override
     public UserRole getRoleByID(int id) throws SQLException {
-        String sqlRequest = "SELECT * FROM userRole WHERE role_id = ?";
+        String sqlRequest = "SELECT * FROM user_role WHERE role_id = ?";
         UserRole role = null;
 
         try {
@@ -65,7 +64,7 @@ public class RoleDAOImpl implements RoleDAO {
 
     @Override
     public List<UserRole> getAllRoles() throws SQLException {
-        String sqlRequest = "SELECT * FROM userRole";
+        String sqlRequest = "SELECT * FROM user_role";
         List<UserRole> roleList = new ArrayList<>();
         try {
             connectorToDatabase = ConnectorToDatabase.getInstance();
@@ -88,7 +87,7 @@ public class RoleDAOImpl implements RoleDAO {
 
     @Override
     public void updateRole(UserRole role) throws SQLException {
-        String sqlRequest = "UPDATE userRole SET role_name = ? WHERE role_id = ?";
+        String sqlRequest = "UPDATE user_role SET role_name = ? WHERE role_id = ?";
         try {
             connectorToDatabase = ConnectorToDatabase.getInstance();
             PreparedStatement statement = connectorToDatabase.getConnection().prepareStatement(sqlRequest);
@@ -105,7 +104,7 @@ public class RoleDAOImpl implements RoleDAO {
 
     @Override
     public void deleteRoleByID(int id) throws SQLException {
-        String sqlRequest = "DELETE FROM userRole WHERE role_id = ?";
+        String sqlRequest = "DELETE FROM user_role WHERE role_id = ?";
         try {
             connectorToDatabase = ConnectorToDatabase.getInstance();
             PreparedStatement statement = connectorToDatabase.getConnection().prepareStatement(sqlRequest);
