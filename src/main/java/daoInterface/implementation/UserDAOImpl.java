@@ -2,8 +2,10 @@ package daoInterface.implementation;
 
 import Entities.User;
 import daoInterface.UserDAO;
+import daoInterface.queries.SQLUsersQueries;
+import database.ConnectionProxy;
 import database.ConnectorToDatabase;
-
+import exceptions.UserDAOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,18 +14,20 @@ import java.util.List;
 
 public class UserDAOImpl implements UserDAO {
 
-    private ConnectorToDatabase connectorToDatabase;
+    private static volatile UserDAOImpl instance = null;
+    private static final ConnectorToDatabase connectorToDatabase = ConnectorToDatabase.getInstance();
 
-    public UserDAOImpl() {}
+    private UserDAOImpl() {}
 
     @Override
-    public void addUser(User user) throws SQLException {
-
-        String sqlRequest = "INSERT INTO users (user_fullname, user_email, user_password, user_role_id) VALUES (?, ?, ?, ?)";
-
-        try{
-            connectorToDatabase = ConnectorToDatabase.getInstance();
-            PreparedStatement statement = connectorToDatabase.getConnection().prepareStatement(sqlRequest);
+    public void addUser(User user) throws UserDAOException {
+        try(
+                ConnectionProxy connection = connectorToDatabase
+                        .getConnection();
+                PreparedStatement statement = connection
+                        .getRealConnection()
+                        .prepareStatement(SQLUsersQueries.ADD_USER);
+        ) {
             statement.setString(1, user.getFullName());
             statement.setString(2, user.getEmail());
             statement.setString(3, user.getPassword());
@@ -33,22 +37,21 @@ public class UserDAOImpl implements UserDAO {
             if (e.getErrorCode() == 1062) {
                 System.out.println("User with this e-mail is already exists!");
             } else {
-                System.out.println("Problem with adding user");
-                e.printStackTrace();
+                throw new UserDAOException("Problem with adding user");
             }
-        } finally {
-            connectorToDatabase.closeConnection();
         }
     }
 
     @Override
-    public User getUserByID(int id) throws SQLException {
-        String sqlRequest = "SELECT * FROM users WHERE user_id = ?";
+    public User getUserByID(int id) throws UserDAOException {
         User user = null;
-
-        try {
-            connectorToDatabase = ConnectorToDatabase.getInstance();
-            PreparedStatement statement = connectorToDatabase.getConnection().prepareStatement(sqlRequest);
+        try(
+                ConnectionProxy connection = connectorToDatabase
+                        .getConnection();
+                PreparedStatement statement = connection
+                        .getRealConnection()
+                        .prepareStatement(SQLUsersQueries.GET_USER)
+        ) {
             statement.setInt(1, id);
             ResultSet rs = statement.executeQuery();
 
@@ -61,21 +64,21 @@ public class UserDAOImpl implements UserDAO {
                 user.setUserRole(rs.getInt("user_role_id"));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
-            System.out.println("Problem in getting user by id!");
-        } finally {
-            connectorToDatabase.closeConnection();
+            throw new UserDAOException("Problems with getting user by id");
         }
         return user;
     }
 
     @Override
-    public List<User> getAllUsers() throws SQLException {
-        String sqlRequest = "SELECT * FROM users";
+    public List<User> getAllUsers() throws UserDAOException {
         List<User> userList = new ArrayList<>();
-        try {
-            connectorToDatabase = ConnectorToDatabase.getInstance();
-            PreparedStatement statement = connectorToDatabase.getConnection().prepareStatement(sqlRequest);
+        try(
+                ConnectionProxy connection = connectorToDatabase
+                        .getConnection();
+                PreparedStatement statement = connection
+                        .getRealConnection()
+                        .prepareStatement(SQLUsersQueries.GET_ALL_USERS)
+        ) {
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 User user = new User();
@@ -87,20 +90,20 @@ public class UserDAOImpl implements UserDAO {
                 userList.add(user);
             }
         } catch (SQLException e) {
-            System.out.println("Problem in getting all users from db!");
-            e.printStackTrace();
-        } finally {
-            connectorToDatabase.closeConnection();
+            throw new UserDAOException("Problems with getting all users");
         }
         return userList;
     }
 
     @Override
-    public void updateUser(User user) throws SQLException {
-        String sqlRequest = "UPDATE users SET user_fullname = ?, user_email = ?, user_password = ?, user_role_id = ? WHERE user_id = ?";
-        try {
-            connectorToDatabase = ConnectorToDatabase.getInstance();
-            PreparedStatement statement = connectorToDatabase.getConnection().prepareStatement(sqlRequest);
+    public void updateUser(User user) throws UserDAOException {
+        try(
+                ConnectionProxy connection = connectorToDatabase
+                        .getConnection();
+                PreparedStatement statement = connection
+                        .getRealConnection()
+                        .prepareStatement(SQLUsersQueries.UPDATE_USER)
+                ) {
             statement.setString(1, user.getFullName());
             statement.setString(2, user.getEmail());
             statement.setString(3, user.getPassword());
@@ -108,28 +111,37 @@ public class UserDAOImpl implements UserDAO {
             statement.setInt(5, user.getId());
             statement.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Error in user-updating!");
-            e.printStackTrace();
-        } finally {
-            connectorToDatabase.closeConnection();
+            throw new UserDAOException("Problems with updating user information");
         }
     }
 
     @Override
-    public void deleteUserByID(int id) throws SQLException {
-        String sqlRequest = "DELETE FROM users WHERE user_id = ?";
-        try {
-            connectorToDatabase = ConnectorToDatabase.getInstance();
-            PreparedStatement statement = connectorToDatabase.getConnection().prepareStatement(sqlRequest);
+    public void deleteUserByID(int id) throws UserDAOException {
+        try (
+                ConnectionProxy connection = connectorToDatabase
+                        .getConnection();
+                PreparedStatement statement = connection
+                        .getRealConnection()
+                        .prepareStatement(SQLUsersQueries.DELETE_USER)
+        ) {
             statement.setInt(1, id);
             statement.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Problem in deleting user!");
-            e.printStackTrace();
-        } finally {
-            connectorToDatabase.closeConnection();
+            throw new UserDAOException("Problems with deleting user");
         }
     }
 
+    public static UserDAOImpl getInstance() {
+        UserDAOImpl userLocalDAO = instance;
+        if (userLocalDAO == null) {
+            synchronized (UserDAOImpl.class) {
+                userLocalDAO = instance;
+                if (userLocalDAO == null) {
+                    instance = userLocalDAO = new UserDAOImpl();
+                }
+            }
+        }
+        return instance;
+    }
 
 }

@@ -1,69 +1,57 @@
+// FOR TESTING
+
 import Entities.User;
 import Entities.UserRole;
-
 import daoInterface.implementation.RoleDAOImpl;
 import daoInterface.implementation.UserDAOImpl;
+import exceptions.RoleDAOException;
+import exceptions.UserDAOException;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
-    public static void main(String[] args) throws SQLException {
-        UserDAOImpl userDAO = new UserDAOImpl();
-        RoleDAOImpl roleDAO = new RoleDAOImpl();
+    public static void main(String[] args) throws InterruptedException, UserDAOException, RoleDAOException {
+        UserDAOImpl userDAO = UserDAOImpl.getInstance();
+        RoleDAOImpl roleDAO = RoleDAOImpl.getInstance();
 
-        // First User
+        ExecutorService es = Executors.newFixedThreadPool(24);
+        for (int i = 0; i < 24; i++) {
+            es.submit(new Work(userDAO));
+        }
+        es.shutdown();
+        es.awaitTermination(1, TimeUnit.DAYS);
+
         User user1 = new User();
-        UserRole userRole = new UserRole();
-        userRole.setId(1);
-        userRole.setRoleName("admin");
+        user1.setFullName("Сасис Корочкин");
+        user1.setPassword("20022001");
+        user1.setEmail("red1s2@mail.ru");
+        user1.setUserRole(1);
+        userDAO.addUser(user1);
 
-        //roleDAO.addRole(userRole);
+        UserRole role = new UserRole();
+        role.setRoleName("posps");
+        roleDAO.addRole(role);
 
-        // First User setting
-        user1.setFullName("Иван Иванов");
-        user1.setEmail("mail2@mail.ru");
-        user1.setPassword("kokasas");
-        user1.setUserRole(userRole.getId());
+        System.out.println("Main " + userDAO.getAllUsers());
+    }
+}
 
-        // Adding USER
-        //userDAO.addUser(user1);
+class Work implements Runnable {
+    private final UserDAOImpl userDAO;
 
+    Work(UserDAOImpl userDAO) {
+        this.userDAO = userDAO;
+    }
 
-        // Update User
-        User newUser = new User();
-        newUser.setId(7);
-        newUser.setFullName("Иван Чепчиков");
-        newUser.setEmail("mail3@mail.ru");
-        newUser.setPassword("kokaksas");
-        newUser.setUserRole(userRole.getId());
-
-        //userDAO.updateUser(newUser);
-
-        // DeleteUser
-        //userDAO.deleteUserByID(6);
-
-        // Get all users
-        List<User> users = new ArrayList<>();
-        users = userDAO.getAllUsers();
-        System.out.println(users.toString());
-
-        // Add Role
-        //UserRole role = new UserRole();
-        //role.setRoleName("not admin");
-        //roleDAO.addRole(role);
-
-        // Update role
-//        UserRole role2 = new UserRole();
-//        role2.setId(2);
-//        role2.setRoleName("good admin");
-//        roleDAO.updateRole(role2);
-
-        // Delete Role
-        //roleDAO.deleteRoleByID(2);
-
-        //Get all roles
-        System.out.println(roleDAO.getAllRoles());
+    @Override
+    public void run() {
+        try {
+            Thread.sleep(1000);
+            System.out.println(userDAO.getAllUsers());
+        } catch (UserDAOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
