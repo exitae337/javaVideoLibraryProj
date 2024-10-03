@@ -1,20 +1,23 @@
 package database;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import exceptions.ConnectionToDatabaseException;
 
 public class ConnectorToDatabase {
     private static volatile ConnectorToDatabase dbConnector = null;
-    private static final ConnectionPool connectionPool = new ConnectionPool();
+    private static final ConnectionPool connectionPool = ConnectionPool.getInstance();
 
     private ConnectorToDatabase() {}
 
-    public ConnectionProxy getConnection() throws SQLException {
+    public ConnectionProxy getConnection() throws ConnectionToDatabaseException {
         try {
             return connectionPool.getConnection();
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ConnectionToDatabaseException();
         }
+    }
+
+    public boolean connectionPoolInitialized() {
+        return connectionPool != null;
     }
 
     public static ConnectorToDatabase getInstance() {
@@ -23,7 +26,8 @@ public class ConnectorToDatabase {
             synchronized (ConnectorToDatabase.class) {
                 localConnector = dbConnector;
                 if (localConnector == null) {
-                    dbConnector = localConnector = new ConnectorToDatabase();
+                    localConnector = new ConnectorToDatabase();
+                    dbConnector = localConnector;
                 }
             }
         }

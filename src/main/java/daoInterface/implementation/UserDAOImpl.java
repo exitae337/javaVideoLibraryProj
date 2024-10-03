@@ -1,7 +1,8 @@
 package daoInterface.implementation;
 
 import Entities.User;
-import daoInterface.UserDAO;
+import daoInterface.columnnames.UsersColumnNames;
+import daoInterface.dao.UserDAO;
 import daoInterface.queries.SQLUsersQueries;
 import database.ConnectionProxy;
 import database.ConnectorToDatabase;
@@ -15,6 +16,7 @@ import java.util.List;
 public class UserDAOImpl implements UserDAO {
 
     private static volatile UserDAOImpl instance = null;
+    private static final int ERROR_CODE_CONCURRENCE = 1062;
     private static final ConnectorToDatabase connectorToDatabase = ConnectorToDatabase.getInstance();
 
     private UserDAOImpl() {}
@@ -34,10 +36,10 @@ public class UserDAOImpl implements UserDAO {
             statement.setInt(4, user.getRole());
             statement.executeUpdate();
         } catch (SQLException e) {
-            if (e.getErrorCode() == 1062) {
+            if (e.getErrorCode() == ERROR_CODE_CONCURRENCE) {
                 System.out.println("User with this e-mail is already exists!");
             } else {
-                throw new UserDAOException("Problem with adding user");
+                throw new UserDAOException("Problem with adding user", e.getCause());
             }
         }
     }
@@ -57,14 +59,14 @@ public class UserDAOImpl implements UserDAO {
 
             if(rs.next()) {
                 user = new User();
-                user.setId(rs.getInt("user_id"));
-                user.setFullName(rs.getString("user_fullname"));
-                user.setEmail(rs.getString("user_email"));
-                user.setPassword(rs.getString("user_password"));
-                user.setUserRole(rs.getInt("user_role_id"));
+                user.setId(rs.getInt(UsersColumnNames.COLUMN_USER_ID));
+                user.setFullName(rs.getString(UsersColumnNames.COLUMN_USER_FULLNAME));
+                user.setEmail(rs.getString(UsersColumnNames.COLUMN_USER_EMAIL));
+                user.setPassword(rs.getString(UsersColumnNames.COLUMN_USER_PASSWORD));
+                user.setUserRole(rs.getInt(UsersColumnNames.COLUMN_USER_ROLE_ID));
             }
         } catch (SQLException e) {
-            throw new UserDAOException("Problems with getting user by id");
+            throw new UserDAOException("Problems with getting user by id", e.getCause());
         }
         return user;
     }
@@ -82,15 +84,15 @@ public class UserDAOImpl implements UserDAO {
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 User user = new User();
-                user.setId(rs.getInt("user_id"));
-                user.setFullName(rs.getString("user_fullname"));
-                user.setEmail(rs.getString("user_email"));
-                user.setPassword(rs.getString("user_password"));
-                user.setUserRole(rs.getInt("user_role_id"));
+                user.setId(rs.getInt(UsersColumnNames.COLUMN_USER_ID));
+                user.setFullName(rs.getString(UsersColumnNames.COLUMN_USER_FULLNAME));
+                user.setEmail(rs.getString(UsersColumnNames.COLUMN_USER_EMAIL));
+                user.setPassword(rs.getString(UsersColumnNames.COLUMN_USER_PASSWORD));
+                user.setUserRole(rs.getInt(UsersColumnNames.COLUMN_USER_ROLE_ID));
                 userList.add(user);
             }
         } catch (SQLException e) {
-            throw new UserDAOException("Problems with getting all users");
+            throw new UserDAOException("Problems with getting all users", e.getCause());
         }
         return userList;
     }
@@ -111,7 +113,7 @@ public class UserDAOImpl implements UserDAO {
             statement.setInt(5, user.getId());
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new UserDAOException("Problems with updating user information");
+            throw new UserDAOException("Problems with updating user information", e.getCause());
         }
     }
 
@@ -127,7 +129,7 @@ public class UserDAOImpl implements UserDAO {
             statement.setInt(1, id);
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new UserDAOException("Problems with deleting user");
+            throw new UserDAOException("Problems with deleting user", e.getCause());
         }
     }
 
@@ -137,7 +139,8 @@ public class UserDAOImpl implements UserDAO {
             synchronized (UserDAOImpl.class) {
                 userLocalDAO = instance;
                 if (userLocalDAO == null) {
-                    instance = userLocalDAO = new UserDAOImpl();
+                    userLocalDAO = new UserDAOImpl();
+                    instance = userLocalDAO;
                 }
             }
         }

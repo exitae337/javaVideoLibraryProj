@@ -2,7 +2,8 @@ package daoInterface.implementation;
 
 
 import Entities.UserRole;
-import daoInterface.RoleDAO;
+import daoInterface.columnnames.RolesColumnNames;
+import daoInterface.dao.RoleDAO;
 import daoInterface.queries.SQLRolesQueries;
 import database.ConnectionProxy;
 import database.ConnectorToDatabase;
@@ -17,6 +18,7 @@ import java.util.List;
 public class RoleDAOImpl implements RoleDAO {
 
     private static volatile RoleDAOImpl instance = null;
+    private static final int ERROR_CODE_CONCURRENCE = 1062;
     private final ConnectorToDatabase connectorToDatabase = ConnectorToDatabase.getInstance();
 
     private RoleDAOImpl() {}
@@ -33,10 +35,10 @@ public class RoleDAOImpl implements RoleDAO {
             statement.setString(1, role.getRoleName());
             statement.executeUpdate();
         } catch (SQLException e) {
-            if (e.getErrorCode() == 1062) {
+            if (e.getErrorCode() == ERROR_CODE_CONCURRENCE) {
                 System.out.println("Role is already exists!");
             } else {
-                throw new RoleDAOException("Problem with adding role");
+                throw new RoleDAOException("Problem with adding role", e.getCause());
             }
         }
     }
@@ -55,11 +57,11 @@ public class RoleDAOImpl implements RoleDAO {
             ResultSet rs = statement.executeQuery();
             if(rs.next()) {
                 role = new UserRole();
-                role.setId(rs.getInt("role_id"));
-                role.setRoleName(rs.getString("role_name"));
+                role.setId(rs.getInt(RolesColumnNames.COLUMN_ROLE_ID));
+                role.setRoleName(rs.getString(RolesColumnNames.COLUMN_ROLE_NAME));
             }
         } catch (SQLException e) {
-            throw new RoleDAOException("Problems with getting role by id");
+            throw new RoleDAOException("Problems with getting role by id", e.getCause());
         }
         return role;
     }
@@ -77,12 +79,12 @@ public class RoleDAOImpl implements RoleDAO {
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 UserRole role = new UserRole();
-                role.setId(rs.getInt("role_id"));
-                role.setRoleName(rs.getString("role_name"));
+                role.setId(rs.getInt(RolesColumnNames.COLUMN_ROLE_ID));
+                role.setRoleName(rs.getString(RolesColumnNames.COLUMN_ROLE_NAME));
                 roleList.add(role);
             }
         } catch (SQLException e) {
-            throw new RoleDAOException("Problem with getting all roles");
+            throw new RoleDAOException("Problem with getting all roles", e.getCause());
         }
         return roleList;
     }
@@ -100,7 +102,7 @@ public class RoleDAOImpl implements RoleDAO {
             statement.setInt(2, role.getId());
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RoleDAOException("Problems with deleting user");
+            throw new RoleDAOException("Problems with deleting user", e.getCause());
         }
     }
 
@@ -116,7 +118,7 @@ public class RoleDAOImpl implements RoleDAO {
             statement.setInt(1, id);
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RoleDAOException("Problems with deleting role");
+            throw new RoleDAOException("Problems with deleting role", e.getCause());
         }
     }
 
@@ -126,7 +128,8 @@ public class RoleDAOImpl implements RoleDAO {
             synchronized (RoleDAOImpl.class) {
                 roleLocalDAO = instance;
                 if(roleLocalDAO == null) {
-                    instance = roleLocalDAO = new RoleDAOImpl();
+                    roleLocalDAO = new RoleDAOImpl();
+                    instance = roleLocalDAO;
                 }
             }
         }

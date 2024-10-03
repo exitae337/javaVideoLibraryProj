@@ -10,8 +10,8 @@ public class ConnectionProxy implements Connection {
     private final ConnectionPool connectionPool;
 
     ConnectionProxy(Connection realConnection, ConnectionPool connectionPool) {
-        this.realConnection = realConnection;
         this.connectionPool = connectionPool;
+        this.realConnection = realConnection;
     }
 
     @Override
@@ -59,6 +59,15 @@ public class ConnectionProxy implements Connection {
         try {
             connectionPool.returnConnection(this);
         } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void closeRealConnection() {
+        try {
+            this.realConnection.close();
+            connectionPool.returnConnection(this);
+        } catch (SQLException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }

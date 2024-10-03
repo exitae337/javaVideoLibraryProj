@@ -1,5 +1,11 @@
+<%@ page contentType="text/html; charset=UTF-8" language="java" %>
 <html>
+<head>
+    <title>Видеотека</title>
+</head>
 <body>
-<h2>Hello World!</h2>
+    <h1>Добро пожаловать!</h1>
+    <p>Перейдите на главную страницу чтобы начать работу!</p>
+    <button onclick="window.location.href='home'">Начать работу</button>
 </body>
 </html>
