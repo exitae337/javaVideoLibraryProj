@@ -1,11 +1,9 @@
 package controllers.userservlets;
 
 import Entities.User;
-import exceptions.ConnectionToDatabaseException;
 import exceptions.UserDAOException;
 import services.UsersService;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;

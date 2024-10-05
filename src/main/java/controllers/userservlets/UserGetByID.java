@@ -1,7 +1,6 @@
 package controllers.userservlets;
 
 import Entities.User;
-import exceptions.ConnectionToDatabaseException;
 import exceptions.UserDAOException;
 import services.UsersService;
 
