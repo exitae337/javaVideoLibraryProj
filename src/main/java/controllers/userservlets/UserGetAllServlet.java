@@ -18,17 +18,9 @@ public class UserGetAllServlet extends HttpServlet {
     private static final UsersService userService = UsersService.getInstance();
 
     @Override
-    public void init(ServletConfig config) throws ServletException {
-        super.init(config);
-    }
-
-    @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         super.service(req, resp);
     }
-
-    @Override
-    public void destroy() { }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
