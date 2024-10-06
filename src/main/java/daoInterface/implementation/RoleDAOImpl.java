@@ -102,7 +102,7 @@ public class RoleDAOImpl implements RoleDAO {
             statement.setInt(2, role.getId());
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RoleDAOException("Problems with deleting user", e.getCause());
+            throw new RoleDAOException("Problems with updating role", e.getCause());
         }
     }
 
