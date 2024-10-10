@@ -10,6 +10,8 @@ public class SQLUsersQueries {
             + UsersColumnNames.COLUMN_USER_ROLE_ID + ") VALUES (?, ?, ?, ?)";
     public static final String GET_USER = "SELECT * FROM users WHERE "
             + UsersColumnNames.COLUMN_USER_ID + " = ?";
+    public static final String GET_USER_BY_EMAIL = "SELECT * FROM users WHERE "
+            + UsersColumnNames.COLUMN_USER_EMAIL + " = ?";
     public static final String GET_ALL_USERS = "SELECT * FROM users";
     public static final String UPDATE_USER = "UPDATE users SET "
             + UsersColumnNames.COLUMN_USER_FULLNAME + " = ?, "

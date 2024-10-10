@@ -22,32 +22,18 @@ public class UserGetAllServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setContentType("text/html; charset=UTF-8");
+        List<User> users = null;
+        String errorMessage = null;
         try {
-            List<User> users = userService.getAllUsers();
-            try (PrintWriter printWriter = resp.getWriter()) {
-                printWriter.println("<html>");
-                printWriter.println("<head><title> Все пользователи </title></head>");
-                printWriter.println("<body>");
-                printWriter.println("<h1> Список всех пользователей: </h1>");
-                printWriter.println("<table border='1'>");
-                printWriter.println("<tr><td>ID</td><td>Имя</td><td>E-mail</td><td>Роль</td></tr>");
-
-                for(User user: users) {
-                    printWriter.println("<tr>");
-                    printWriter.println("<td>" + user.getId() + "</td>");
-                    printWriter.println("<td>" + user.getFullName() + "</td>");
-                    printWriter.println("<td>" + user.getEmail() + "</td>");
-                    printWriter.println("<td>" + user.getRole() + "</td>");
-                    printWriter.println("</tr>");
-                }
-
-                printWriter.println("</table>");
-                printWriter.println("</body>");
-                printWriter.println("</html>");
-            }
+            users = userService.getAllUsers();
         } catch (UserDAOException e) {
-            resp.getWriter().println("Не удалось получить ответ от базы данных!");
+            errorMessage = "Не удалось получить пользователей";
         }
+
+        req.setCharacterEncoding("UTF-8");
+        req.setAttribute("users", users);
+        req.setAttribute("errorMessage", errorMessage);
+
+        req.getRequestDispatcher("users.jsp").forward(req, resp);
     }
 }

@@ -12,4 +12,5 @@ public interface UserDAO {
     List<User> getAllUsers() throws UserDAOException;
     void updateUser(User user) throws UserDAOException;
     void deleteUserByID(int id) throws UserDAOException;
+    User getUserByEmail(String email) throws UserDAOException;
 }

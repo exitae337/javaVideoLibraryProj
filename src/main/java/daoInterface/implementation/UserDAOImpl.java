@@ -133,6 +133,32 @@ public class UserDAOImpl implements UserDAO {
         }
     }
 
+    @Override
+    public User getUserByEmail(String email) throws UserDAOException {
+        User user = null;
+        try (
+                ConnectionProxy connectionProxy = connectorToDatabase
+                        .getConnection();
+                PreparedStatement statement = connectionProxy
+                        .getRealConnection()
+                        .prepareStatement(SQLUsersQueries.GET_USER_BY_EMAIL)
+        ) {
+            statement.setString(1, email);
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) {
+                user = new User();
+                user.setId(rs.getInt(UsersColumnNames.COLUMN_USER_ID));
+                user.setFullName(rs.getString(UsersColumnNames.COLUMN_USER_FULLNAME));
+                user.setEmail(rs.getString(UsersColumnNames.COLUMN_USER_EMAIL));
+                user.setPassword(rs.getString(UsersColumnNames.COLUMN_USER_PASSWORD));
+                user.setUserRole(rs.getInt(UsersColumnNames.COLUMN_USER_ROLE_ID));
+            }
+        } catch ( SQLException e) {
+            throw new UserDAOException("Problems with getting user by e-mail");
+        }
+        return user;
+    }
+
     public static UserDAOImpl getInstance() {
         UserDAOImpl userLocalDAO = instance;
         if (userLocalDAO == null) {

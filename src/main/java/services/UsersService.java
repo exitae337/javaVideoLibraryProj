@@ -6,6 +6,7 @@ import exceptions.ConnectionToDatabaseException;
 import exceptions.UserDAOException;
 
 import java.util.List;
+import java.util.Objects;
 
 public class UsersService {
 
@@ -19,6 +20,23 @@ public class UsersService {
     }
     public User getUserById(int id) throws UserDAOException {
         return userDAO.getUserByID(id);
+    }
+
+    public boolean isRegistered(String email) throws UserDAOException {
+        return userDAO.getUserByEmail(email) != null;
+    }
+
+    public boolean isLogin(String email, String password) throws UserDAOException {
+        User user = userDAO.getUserByEmail(email);
+        if (user != null) {
+            return Objects.equals(user.getPassword(), password);
+        } else {
+            return false;
+        }
+    }
+
+    public void registerUser(User user) throws UserDAOException {
+        userDAO.addUser(user);
     }
 
     public static UsersService getInstance() {
