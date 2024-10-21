@@ -1,6 +1,6 @@
 <%@ page contentType="text/html; charset=UTF-8" language="java" %>
 <%@ page import="java.util.List" %>
-<%@ page import="Entities.User" %>
+<%@ page import="entity.User" %>
 
 <html>
 <head>
@@ -25,10 +25,10 @@
             } else if (users != null && !users.isEmpty()) {
                 for (User user : users) {
                     out.println("<tr>");
-                    out.println("<td>" + user.getId() + "</td>");
-                    out.println("<td>" + user.getFullName() + "</td>");
-                    out.println("<td>" + user.getEmail() + "</td>");
-                    out.println("<td>" + user.getRole() + "</td>");
+                    out.println("<td>" + user.getUser_id() + "</td>");
+                    out.println("<td>" + user.getUser_fullname() + "</td>");
+                    out.println("<td>" + user.getUser_email() + "</td>");
+                    out.println("<td>" + user.getUser_role_id() + "</td>");
                     out.println("</tr>");
                 }
             }
