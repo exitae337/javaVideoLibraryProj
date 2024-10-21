@@ -1,12 +1,20 @@
 package daoInterface.implementation;
 
-import Entities.ActorOrDirector;
+import database.HibernateUtil;
+import entity.ActorOrDirector;
 import daoInterface.columnnames.ActorOrDirectorColumnNames;
 import daoInterface.dao.ActorOrDirectorDAO;
 import daoInterface.queries.SQLActorOrDirectorQueries;
-import database.ConnectionProxy;
-import database.ConnectorToDatabase;
-import exceptions.ActorOrDirectorDAOException;
+import database.myConnectionPool.ConnectionProxy;
+import database.myConnectionPool.ConnectorToDatabase;
+import entity.User;
+import exception.ActorOrDirectorDAOException;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,24 +25,24 @@ import java.util.List;
 public class ActorOrDirectorDAOImpl implements ActorOrDirectorDAO {
 
     private static volatile ActorOrDirectorDAOImpl instance = null;
-    private static final int ERROR_CODE_CONCURRENCE = 1062;
-    private final ConnectorToDatabase connectorToDatabase = ConnectorToDatabase.getInstance();
+
+    private static final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
     private ActorOrDirectorDAOImpl() {}
 
     @Override
     public void addActorOrDirector(ActorOrDirector actorOrDirector) throws ActorOrDirectorDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLActorOrDirectorQueries.ADD_PERSON)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setString(1, actorOrDirector.getPersonFullName());
-            statement.setString(2, actorOrDirector.getPersonType());
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            session.persist(actorOrDirector);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new ActorOrDirectorDAOException("Problem in adding actor or director!", e.getCause());
         }
     }
@@ -43,21 +51,10 @@ public class ActorOrDirectorDAOImpl implements ActorOrDirectorDAO {
     public ActorOrDirector getActorOrDirectorByID(int id) throws ActorOrDirectorDAOException {
         ActorOrDirector actorOrDirector = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLActorOrDirectorQueries.GET_PERSON)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setInt(1, id);
-            ResultSet rs = statement.executeQuery();
-            if (rs.next()) {
-               actorOrDirector = new ActorOrDirector();
-               actorOrDirector.setId(rs.getInt(ActorOrDirectorColumnNames.COLUMN_PERSON_ID));
-               actorOrDirector.setPersonFullName(rs.getString(ActorOrDirectorColumnNames.COLUMN_PERSON_FULLNAME));
-               actorOrDirector.setPersonType(rs.getString(ActorOrDirectorColumnNames.COLUMN_PERSON_ROLE));
-            }
-        } catch (SQLException e) {
+            actorOrDirector = session.find(ActorOrDirector.class, id);
+        } catch (Exception e) {
             throw new ActorOrDirectorDAOException("Problem in getting actor or director", e.getCause());
         }
         return actorOrDirector;
@@ -67,21 +64,14 @@ public class ActorOrDirectorDAOImpl implements ActorOrDirectorDAO {
     public List<ActorOrDirector> getAllActorsOrDirectors() throws ActorOrDirectorDAOException {
         List<ActorOrDirector> actorOrDirectorList = new ArrayList<>();
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLActorOrDirectorQueries.GET_ALL_PEOPLE)
+                Session session = sessionFactory.openSession()
         ) {
-            ResultSet rs = statement.executeQuery();
-            while (rs.next()) {
-                ActorOrDirector actorOrDirector = new ActorOrDirector();
-                actorOrDirector.setId(rs.getInt(ActorOrDirectorColumnNames.COLUMN_PERSON_ID));
-                actorOrDirector.setPersonFullName(rs.getString(ActorOrDirectorColumnNames.COLUMN_PERSON_FULLNAME));
-                actorOrDirector.setPersonType(rs.getString(ActorOrDirectorColumnNames.COLUMN_PERSON_ROLE));
-                actorOrDirectorList.add(actorOrDirector);
-            }
-        } catch (SQLException e) {
+            CriteriaBuilder cb = session.getCriteriaBuilder();
+            CriteriaQuery<ActorOrDirector> cq = cb.createQuery(ActorOrDirector.class);
+            Root<ActorOrDirector> root = cq.from(ActorOrDirector.class);
+            cq.select(root);
+            actorOrDirectorList = session.createQuery(cq).getResultList();
+        } catch (Exception e) {
             throw new ActorOrDirectorDAOException("problem in getting all actors or directors", e.getCause());
         }
         return actorOrDirectorList;
@@ -89,34 +79,37 @@ public class ActorOrDirectorDAOImpl implements ActorOrDirectorDAO {
 
     @Override
     public void updateActorOrDirector(ActorOrDirector actorOrDirector) throws ActorOrDirectorDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLActorOrDirectorQueries.UPDATE_PERSON)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setString(1, actorOrDirector.getPersonFullName());
-            statement.setString(2, actorOrDirector.getPersonType());
-            statement.setInt(3, actorOrDirector.getId());
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            session.merge(actorOrDirector);
+            transaction.commit();
+        } catch (Exception e) {
+            if(transaction != null) {
+                transaction.rollback();
+            }
             throw new ActorOrDirectorDAOException("Problem in updating actor or director", e.getCause());
         }
     }
 
     @Override
     public void deleteActorOrDirectorByID(int id) throws ActorOrDirectorDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLActorOrDirectorQueries.DELETE_PERSON)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setInt(1, id);
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            ActorOrDirector actorOrDirector = session.find(ActorOrDirector.class, id);
+            if (actorOrDirector != null) {
+                session.remove(actorOrDirector);
+            }
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new ActorOrDirectorDAOException("Problems in deleting actor or director!", e.getCause());
         }
     }

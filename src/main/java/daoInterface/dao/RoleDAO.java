@@ -1,11 +1,8 @@
 package daoInterface.dao;
 
-import Entities.UserRole;
-import exceptions.RoleDAOException;
-import exceptions.UserDAOException;
+import entity.UserRole;
+import exception.RoleDAOException;
 
-import javax.management.relation.Role;
-import java.sql.SQLException;
 import java.util.List;
 
 public interface RoleDAO {

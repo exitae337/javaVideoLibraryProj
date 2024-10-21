@@ -1,13 +1,21 @@
 package daoInterface.implementation;
 
 
-import Entities.UserRole;
+import database.HibernateUtil;
+import entity.User;
+import entity.UserRole;
 import daoInterface.columnnames.RolesColumnNames;
 import daoInterface.dao.RoleDAO;
 import daoInterface.queries.SQLRolesQueries;
-import database.ConnectionProxy;
-import database.ConnectorToDatabase;
-import exceptions.RoleDAOException;
+import database.myConnectionPool.ConnectionProxy;
+import database.myConnectionPool.ConnectorToDatabase;
+import exception.RoleDAOException;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,28 +26,25 @@ import java.util.List;
 public class RoleDAOImpl implements RoleDAO {
 
     private static volatile RoleDAOImpl instance = null;
-    private static final int ERROR_CODE_CONCURRENCE = 1062;
-    private final ConnectorToDatabase connectorToDatabase = ConnectorToDatabase.getInstance();
+
+    private static final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
     private RoleDAOImpl() {}
 
     @Override
     public void addRole(UserRole role) throws RoleDAOException {
+        Transaction transaction = null;
         try(
-                ConnectionProxy connection = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connection
-                        .getRealConnection()
-                        .prepareStatement(SQLRolesQueries.ADD_ROLE)
+                Session session = sessionFactory.openSession();
         ) {
-            statement.setString(1, role.getRoleName());
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            if (e.getErrorCode() == ERROR_CODE_CONCURRENCE) {
-                System.out.println("Role is already exists!");
-            } else {
-                throw new RoleDAOException("Problem with adding role", e.getCause());
+            transaction = session.beginTransaction();
+            session.persist(role);
+            transaction.commit();
+        } catch (Exception e) {
+            if(transaction != null) {
+                transaction.rollback();
             }
+            throw new RoleDAOException("Problems with adding user", e.getCause());
         }
     }
 
@@ -47,20 +52,10 @@ public class RoleDAOImpl implements RoleDAO {
     public UserRole getRoleByID(int id) throws RoleDAOException {
         UserRole role = null;
         try(
-                ConnectionProxy connection = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connection
-                        .getRealConnection()
-                        .prepareStatement(SQLRolesQueries.GET_ROLE)
+                Session session = sessionFactory.openSession();
         ) {
-            statement.setInt(1, id);
-            ResultSet rs = statement.executeQuery();
-            if(rs.next()) {
-                role = new UserRole();
-                role.setId(rs.getInt(RolesColumnNames.COLUMN_ROLE_ID));
-                role.setRoleName(rs.getString(RolesColumnNames.COLUMN_ROLE_NAME));
-            }
-        } catch (SQLException e) {
+            role = session.find(UserRole.class, id);
+        } catch (Exception e) {
             throw new RoleDAOException("Problems with getting role by id", e.getCause());
         }
         return role;
@@ -70,20 +65,14 @@ public class RoleDAOImpl implements RoleDAO {
     public List<UserRole> getAllRoles() throws RoleDAOException {
         List<UserRole> roleList = new ArrayList<>();
         try(
-                ConnectionProxy connection = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connection
-                        .getRealConnection()
-                        .prepareStatement(SQLRolesQueries.GET_ALL_ROLES)
+                Session session = sessionFactory.openSession()
         ) {
-            ResultSet rs = statement.executeQuery();
-            while (rs.next()) {
-                UserRole role = new UserRole();
-                role.setId(rs.getInt(RolesColumnNames.COLUMN_ROLE_ID));
-                role.setRoleName(rs.getString(RolesColumnNames.COLUMN_ROLE_NAME));
-                roleList.add(role);
-            }
-        } catch (SQLException e) {
+            CriteriaBuilder cb = session.getCriteriaBuilder();
+            CriteriaQuery<UserRole> cq = cb.createQuery(UserRole.class);
+            Root<UserRole> root = cq.from(UserRole.class);
+            cq.select(root);
+            roleList = session.createQuery(cq).getResultList();
+        } catch (Exception e) {
             throw new RoleDAOException("Problem with getting all roles", e.getCause());
         }
         return roleList;
@@ -91,33 +80,37 @@ public class RoleDAOImpl implements RoleDAO {
 
     @Override
     public void updateRole(UserRole role) throws RoleDAOException {
+        Transaction transaction = null;
         try(
-                ConnectionProxy connection = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connection
-                        .getRealConnection()
-                        .prepareStatement(SQLRolesQueries.UPDATE_ROLE)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setString(1, role.getRoleName());
-            statement.setInt(2, role.getId());
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            session.merge(role);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new RoleDAOException("Problems with updating role", e.getCause());
         }
     }
 
     @Override
     public void deleteRoleByID(int id) throws RoleDAOException {
+        Transaction transaction = null;
         try(
-                ConnectionProxy connection = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connection
-                        .getRealConnection()
-                        .prepareStatement(SQLRolesQueries.DELETE_ROLE)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setInt(1, id);
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            UserRole userRole = session.find(UserRole.class, id);
+            if(userRole != null) {
+                session.remove(userRole);
+            }
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new RoleDAOException("Problems with deleting role", e.getCause());
         }
     }

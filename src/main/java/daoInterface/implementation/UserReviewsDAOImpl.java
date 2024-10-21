@@ -1,15 +1,21 @@
 package daoInterface.implementation;
 
-import Entities.UserReview;
-import daoInterface.columnnames.UserReviewColumnNames;
+import database.HibernateUtil;
+import entity.User;
+import entity.UserReview;
 import daoInterface.dao.UserReviewDAO;
 import daoInterface.queries.SQLUserReviewQueries;
-import database.ConnectionProxy;
-import database.ConnectorToDatabase;
-import exceptions.UserReviewDAOException;
+import database.myConnectionPool.ConnectionProxy;
+import database.myConnectionPool.ConnectorToDatabase;
+import exception.UserReviewDAOException;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,27 +23,21 @@ import java.util.List;
 public class UserReviewsDAOImpl implements UserReviewDAO {
 
     private static volatile UserReviewsDAOImpl instance = null;
-
-    private static final int ERROR_CODE_CONCURRENCE = 1062;
-
-    private final ConnectorToDatabase connectorToDatabase = ConnectorToDatabase.getInstance();
+    private final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
     @Override
     public void addUserReview(UserReview userReview) throws UserReviewDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLUserReviewQueries.ADD_REVIEW)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setInt(1, userReview.getFilmID());
-            statement.setInt(2, userReview.getUserID());
-            statement.setString(3, userReview.getTextReview());
-            statement.setInt(4, userReview.getMark());
-            statement.setString(5, userReview.getCreateDate());
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            session.persist(userReview);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new UserReviewDAOException("Problem with adding review", e.getCause());
         }
     }
@@ -46,24 +46,10 @@ public class UserReviewsDAOImpl implements UserReviewDAO {
     public UserReview getUserReviewByID(int id) throws UserReviewDAOException {
         UserReview userReview = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLUserReviewQueries.GET_REVIEW)
+                Session session = sessionFactory.openSession();
         ) {
-            statement.setInt(1, id);
-            ResultSet rs = statement.executeQuery();
-            if(rs.next()) {
-                userReview = new UserReview();
-                userReview.setId(rs.getInt(UserReviewColumnNames.COLUMN_REVIEW_ID));
-                userReview.setFilmID(rs.getInt(UserReviewColumnNames.COLUMN_REVIEW_FILM_ID));
-                userReview.setUserID(rs.getInt(UserReviewColumnNames.COLUMN_REVIEW_USER_ID));
-                userReview.setTextReview(rs.getString(UserReviewColumnNames.COLUMN_REVIEW_TEXT));
-                userReview.setMark(rs.getInt(UserReviewColumnNames.COLUMN_REVIEW_MARK));
-                userReview.setCreateDate(rs.getString(UserReviewColumnNames.COLUMN_REVIEW_CREATED_DATE));
-            }
-        } catch (SQLException e) {
+            userReview = session.find(UserReview.class, id);
+        } catch (Exception e) {
             throw new UserReviewDAOException("Problem with getting review", e.getCause());
         }
         return userReview;
@@ -73,24 +59,14 @@ public class UserReviewsDAOImpl implements UserReviewDAO {
     public List<UserReview> getAllReviews() throws UserReviewDAOException {
         List<UserReview> userReviewList = new ArrayList<>();
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLUserReviewQueries.GET_ALL_REVIEWS)
+                Session session = sessionFactory.openSession();
         ) {
-            ResultSet rs = statement.executeQuery();
-            while (rs.next()) {
-                UserReview userReview = new UserReview();
-                userReview.setId(rs.getInt(UserReviewColumnNames.COLUMN_REVIEW_ID));
-                userReview.setFilmID(rs.getInt(UserReviewColumnNames.COLUMN_REVIEW_FILM_ID));
-                userReview.setUserID(rs.getInt(UserReviewColumnNames.COLUMN_REVIEW_USER_ID));
-                userReview.setTextReview(rs.getString(UserReviewColumnNames.COLUMN_REVIEW_TEXT));
-                userReview.setMark(rs.getInt(UserReviewColumnNames.COLUMN_REVIEW_MARK));
-                userReview.setCreateDate(rs.getString(UserReviewColumnNames.COLUMN_REVIEW_CREATED_DATE));
-                userReviewList.add(userReview);
-            }
-        } catch (SQLException e) {
+            CriteriaBuilder cb = session.getCriteriaBuilder();
+            CriteriaQuery<UserReview> cq = cb.createQuery(UserReview.class);
+            Root<UserReview> root = cq.from(UserReview.class);
+            cq.select(root);
+            userReviewList = session.createQuery(cq).getResultList();
+        } catch (Exception e) {
             throw new UserReviewDAOException("Problem with getting all reviews!", e.getCause());
         }
         return userReviewList;
@@ -98,37 +74,37 @@ public class UserReviewsDAOImpl implements UserReviewDAO {
 
     @Override
     public void updateUserReview(UserReview userReview) throws UserReviewDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLUserReviewQueries.UPDATE_REVIEW)
+                Session session = sessionFactory.openSession();
         ) {
-            statement.setInt(1, userReview.getFilmID());
-            statement.setInt(2, userReview.getUserID());
-            statement.setString(3, userReview.getTextReview());
-            statement.setInt(4, userReview.getMark());
-            statement.setString(5, userReview.getCreateDate());
-            statement.setInt(6, userReview.getId());
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            session.merge(userReview);
+            transaction.commit();
+        } catch (Exception e) {
+            if(transaction != null) {
+                transaction.rollback();
+            }
             throw new UserReviewDAOException("Problems with update review", e.getCause());
         }
     }
 
     @Override
     public void deleteUSerReviewByID(int id) throws UserReviewDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLUserReviewQueries.DELETE_REVIEW)
+                Session session = sessionFactory.openSession();
         ) {
-            statement.setInt(1, id);
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            User user = session.find(User.class, id);
+            if(user != null) {
+                session.remove(user);
+            }
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new UserReviewDAOException("Problems with deleting review", e.getCause());
         }
     }

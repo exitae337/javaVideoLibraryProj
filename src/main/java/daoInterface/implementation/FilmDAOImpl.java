@@ -1,12 +1,20 @@
 package daoInterface.implementation;
 
-import Entities.Film;
+import database.HibernateUtil;
+import entity.Film;
 import daoInterface.columnnames.FilmColumnNames;
 import daoInterface.dao.FilmDAO;
 import daoInterface.queries.SQLFilmsQueries;
-import database.ConnectionProxy;
-import database.ConnectorToDatabase;
-import exceptions.FilmDAOException;
+import database.myConnectionPool.ConnectionProxy;
+import database.myConnectionPool.ConnectorToDatabase;
+import entity.User;
+import exception.FilmDAOException;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,32 +25,24 @@ import java.util.List;
 public class FilmDAOImpl implements FilmDAO {
 
     private static volatile FilmDAOImpl instance = null;
-    private static final int ERROR_CODE_CONCURRENCE = 1062;
-    private final ConnectorToDatabase connectorToDatabase = ConnectorToDatabase.getInstance();
+    private static final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
     private FilmDAOImpl() {}
 
     @Override
     public void addFilm(Film film) throws FilmDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLFilmsQueries.ADD_FILM)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setString(1, film.getFilmName());
-            statement.setInt(2, film.getFilmDirectorId());
-            statement.setString(3, film.getFilmStartDate());
-            statement.setInt(4, film.getFilmCountryId());
-            statement.setInt(5, film.getFilmGenreId());
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            if(e.getErrorCode() == ERROR_CODE_CONCURRENCE) {
-                System.out.println("Film is already exists");
-            } else {
-                throw new FilmDAOException("Problem in adding film", e.getCause());
+            transaction = session.beginTransaction();
+            session.persist(film);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
             }
+            throw new FilmDAOException("Problem in adding film", e.getCause());
         }
     }
 
@@ -50,24 +50,10 @@ public class FilmDAOImpl implements FilmDAO {
     public Film getFilmByID(int id) throws FilmDAOException {
         Film film = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLFilmsQueries.GET_FILM)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setInt(1, id);
-            ResultSet rs = statement.executeQuery();
-            if(rs.next()) {
-                film = new Film();
-                film.setId(rs.getInt(FilmColumnNames.COLUMN_FILM_ID));
-                film.setFilmName(rs.getString(FilmColumnNames.COLUMN_FILM_NAME));
-                film.setFilmDirectorId(rs.getInt(FilmColumnNames.COLUMN_FILM_DIRECTOR));
-                film.setFilmStartDate(rs.getString(FilmColumnNames.COLUMN_FILM_START_DATE));
-                film.setFilmCountryId(rs.getInt(FilmColumnNames.COLUMN_FILM_COUNTRY));
-                film.setFilmGenreId(rs.getInt(FilmColumnNames.COLUMN_FILM_GENRE));
-            }
-        } catch (SQLException e) {
+            film = session.find(Film.class, id);
+        } catch (Exception e) {
             throw new FilmDAOException("Problem in getting film!", e.getCause());
         }
         return film;
@@ -77,24 +63,14 @@ public class FilmDAOImpl implements FilmDAO {
     public List<Film> getAllFilms() throws FilmDAOException {
         List<Film> filmList = new ArrayList<>();
         try(
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLFilmsQueries.GET_ALL_FILMS)
+                Session session = sessionFactory.openSession()
         ) {
-            ResultSet rs = statement.executeQuery();
-            while(rs.next()) {
-                Film film = new Film();
-                film.setId(rs.getInt(FilmColumnNames.COLUMN_FILM_ID));
-                film.setFilmName(rs.getString(FilmColumnNames.COLUMN_FILM_NAME));
-                film.setFilmDirectorId(rs.getInt(FilmColumnNames.COLUMN_FILM_DIRECTOR));
-                film.setFilmStartDate(rs.getString(FilmColumnNames.COLUMN_FILM_START_DATE));
-                film.setFilmCountryId(rs.getInt(FilmColumnNames.COLUMN_FILM_COUNTRY));
-                film.setFilmGenreId(rs.getInt(FilmColumnNames.COLUMN_FILM_GENRE));
-                filmList.add(film);
-            }
-        } catch (SQLException e) {
+            CriteriaBuilder cb = session.getCriteriaBuilder();
+            CriteriaQuery<Film> cq = cb.createQuery(Film.class);
+            Root<Film> root = cq.from(Film.class);
+            cq.select(root);
+            filmList = session.createQuery(cq).getResultList();
+        } catch (Exception e) {
             throw new FilmDAOException("Problem in getting all films!", e.getCause());
         }
         return filmList;
@@ -102,37 +78,37 @@ public class FilmDAOImpl implements FilmDAO {
 
     @Override
     public void updateFilm(Film film) throws FilmDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLFilmsQueries.UPDATE_FILM)
+                Session session = sessionFactory.openSession()
         ) {
-           statement.setString(1, film.getFilmName());
-           statement.setInt(2, film.getFilmDirectorId());
-           statement.setString(3, film.getFilmStartDate());
-           statement.setInt(4, film.getFilmCountryId());
-           statement.setInt(5, film.getFilmGenreId());
-           statement.setInt(6, film.getId());
-           statement.executeUpdate();
-        } catch (SQLException e) {
+           transaction = session.beginTransaction();
+           session.merge(film);
+           transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new FilmDAOException("Problem in updating film", e.getCause());
         }
     }
 
     @Override
     public void deleteFilmByID(int id) throws FilmDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLFilmsQueries.DELETE_FILM)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setInt(1, id);
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            Film film = session.find(Film.class, id);
+            if (film != null) {
+                session.remove(film);
+            }
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new FilmDAOException("Problems in deleting film!", e.getCause());
         }
     }

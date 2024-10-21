@@ -1,7 +1,7 @@
 package daoInterface.dao;
 
-import Entities.ActorOrDirector;
-import exceptions.ActorOrDirectorDAOException;
+import entity.ActorOrDirector;
+import exception.ActorOrDirectorDAOException;
 
 import java.util.List;
 

@@ -1,12 +1,14 @@
-import Entities.User;
 import daoInterface.implementation.UserDAOImpl;
-import database.ConnectorToDatabase;
-import exceptions.UserDAOException;
-import services.UsersService;
+import entity.User;
+import exception.UserDAOException;
+import service.UsersService;
+
 
 // FOR TESTING
 public class Main {
     public static void main(String[] args) throws UserDAOException {
-
+        UserDAOImpl userDAO = UserDAOImpl.getInstance();
+        User user = userDAO.getUserByEmail("mail@mail.ru");
+        System.out.println(user);
     }
 }

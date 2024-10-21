@@ -6,7 +6,7 @@
 
   <servlet>
     <servlet-name>main-servlet</servlet-name>
-    <servlet-class>controllers.userservlets.MainServlet</servlet-class>
+    <servlet-class>controller.userservlets.MainServlet</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>main-servlet</servlet-name>
@@ -15,7 +15,7 @@
 
   <filter>
     <filter-name>auth-filter</filter-name>
-    <filter-class>controllers.filters.AuthFilter</filter-class>
+    <filter-class>controller.filters.AuthFilter</filter-class>
   </filter>
   <filter-mapping>
     <filter-name>auth-filter</filter-name>
@@ -24,7 +24,7 @@
 
   <servlet>
     <servlet-name>login-servlet</servlet-name>
-    <servlet-class>controllers.userservlets.UserLogin</servlet-class>
+    <servlet-class>controller.userservlets.UserLogin</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>login-servlet</servlet-name>
@@ -33,7 +33,7 @@
 
   <servlet>
     <servlet-name>get-users-servlet</servlet-name>
-    <servlet-class>controllers.userservlets.UserGetAllServlet</servlet-class>
+    <servlet-class>controller.userservlets.UserGetAllServlet</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>get-users-servlet</servlet-name>
@@ -42,7 +42,7 @@
 
   <servlet>
     <servlet-name>register-user</servlet-name>
-    <servlet-class>controllers.userservlets.UserRegistration</servlet-class>
+    <servlet-class>controller.userservlets.UserRegistration</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>register-user</servlet-name>
@@ -51,7 +51,7 @@
 
   <servlet>
     <servlet-name>get-user-by-id</servlet-name>
-    <servlet-class>controllers.userservlets.UserGetByID</servlet-class>
+    <servlet-class>controller.userservlets.UserGetByID</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>get-user-by-id</servlet-name>

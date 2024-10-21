@@ -1,12 +1,20 @@
 package daoInterface.implementation;
 
-import Entities.CountryFilm;
+import database.HibernateUtil;
+import entity.CountryFilm;
 import daoInterface.columnnames.CountryFilmColumnNames;
 import daoInterface.dao.CountryFilmDAO;
 import daoInterface.queries.SQLCountryFilmQueries;
-import database.ConnectionProxy;
-import database.ConnectorToDatabase;
-import exceptions.CountryFilmDAOException;
+import database.myConnectionPool.ConnectionProxy;
+import database.myConnectionPool.ConnectorToDatabase;
+import entity.User;
+import exception.CountryFilmDAOException;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,28 +25,25 @@ import java.util.List;
 public class CountryFilmDAOImpl implements CountryFilmDAO {
 
     private static volatile CountryFilmDAOImpl instance = null;
-    private static final int ERROR_CODE_CONCURRENCE = 1062;
-    private final ConnectorToDatabase connectorToDatabase = ConnectorToDatabase.getInstance();
+    private static final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
     private CountryFilmDAOImpl() {}
 
     @Override
     public void addCountryFilm(CountryFilm countryFilm) throws CountryFilmDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLCountryFilmQueries.ADD_COUNTRY)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setString(1, countryFilm.getCountryName());
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            if (e.getErrorCode() == ERROR_CODE_CONCURRENCE) {
-                System.out.println("Such country is already exists!");
-            } else {
-                throw new CountryFilmDAOException("Problems with adding Country!", e.getCause());
+            transaction = session.beginTransaction();
+            session.persist(countryFilm);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
             }
+            throw new CountryFilmDAOException("Problems with adding Country!", e.getCause());
+
         }
     }
 
@@ -46,20 +51,10 @@ public class CountryFilmDAOImpl implements CountryFilmDAO {
     public CountryFilm getCountryFilmByID(int id) throws CountryFilmDAOException {
         CountryFilm countryFilm = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLCountryFilmQueries.GET_COUNTRY)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setInt(1, id);
-            ResultSet rs = statement.executeQuery();
-            if(rs.next()) {
-                countryFilm = new CountryFilm();
-                countryFilm.setId(rs.getInt(CountryFilmColumnNames.COLUMN_ID));
-                countryFilm.setCountryName(rs.getString(CountryFilmColumnNames.COLUMN_COUNTRY_NAME));
-            }
-        } catch (SQLException e) {
+            countryFilm = session.find(CountryFilm.class, id);
+        } catch (Exception e) {
             throw new CountryFilmDAOException("Problems with getting Country!", e.getCause());
         }
         return countryFilm;
@@ -69,20 +64,14 @@ public class CountryFilmDAOImpl implements CountryFilmDAO {
     public List<CountryFilm> getAllCountries() throws CountryFilmDAOException {
         List<CountryFilm> countryFilmList = new ArrayList<>();
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectorToDatabase
-                        .getConnection()
-                        .prepareStatement(SQLCountryFilmQueries.GET_ALL_COUNTRIES)
+                Session session = sessionFactory.openSession()
         ) {
-            ResultSet rs = statement.executeQuery();
-            while (rs.next()) {
-                CountryFilm countryFilm = new CountryFilm();
-                countryFilm.setId(rs.getInt(CountryFilmColumnNames.COLUMN_ID));
-                countryFilm.setCountryName(rs.getString(CountryFilmColumnNames.COLUMN_COUNTRY_NAME));
-                countryFilmList.add(countryFilm);
-            }
-        } catch (SQLException e) {
+            CriteriaBuilder cb = session.getCriteriaBuilder();
+            CriteriaQuery<CountryFilm> cq = cb.createQuery(CountryFilm.class);
+            Root<CountryFilm> root = cq.from(CountryFilm.class);
+            cq.select(root);
+            countryFilmList = session.createQuery(cq).getResultList();
+        } catch (Exception e) {
             throw new CountryFilmDAOException("Problem eih getting all users!", e.getCause());
         }
         return countryFilmList;
@@ -90,33 +79,37 @@ public class CountryFilmDAOImpl implements CountryFilmDAO {
 
     @Override
     public void updateCountryFilm(CountryFilm countryFilm) throws CountryFilmDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLCountryFilmQueries.UPDATE_COUNTRY)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setString(1, countryFilm.getCountryName());
-            statement.setInt(2, countryFilm.getId());
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            session.merge(countryFilm);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new CountryFilmDAOException("Problem in updating Country", e.getCause());
         }
     }
 
     @Override
     public void deleteCountryFilmByID(int id) throws CountryFilmDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLCountryFilmQueries.DELETE_COUNTRY)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setInt(1, id);
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            CountryFilm countryFilm = session.find(CountryFilm.class, id);
+            if (countryFilm != null) {
+                session.remove(countryFilm);
+            }
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new CountryFilmDAOException("Problem with deleting Country", e.getCause());
         }
     }

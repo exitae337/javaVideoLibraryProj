@@ -1,7 +1,7 @@
 package daoInterface.dao;
 
-import Entities.UserReview;
-import exceptions.UserReviewDAOException;
+import entity.UserReview;
+import exception.UserReviewDAOException;
 
 import java.util.List;
 

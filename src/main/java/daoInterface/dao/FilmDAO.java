@@ -1,7 +1,7 @@
 package daoInterface.dao;
 
-import Entities.Film;
-import exceptions.FilmDAOException;
+import entity.Film;
+import exception.FilmDAOException;
 
 import java.util.List;
 

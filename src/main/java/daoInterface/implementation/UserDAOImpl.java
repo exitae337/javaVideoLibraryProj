@@ -1,46 +1,40 @@
 package daoInterface.implementation;
 
-import Entities.User;
-import daoInterface.columnnames.UsersColumnNames;
+import database.HibernateUtil;
+import entity.User;
 import daoInterface.dao.UserDAO;
-import daoInterface.queries.SQLUsersQueries;
-import database.ConnectionProxy;
-import database.ConnectorToDatabase;
-import exceptions.UserDAOException;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import exception.UserDAOException;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserDAOImpl implements UserDAO {
 
     private static volatile UserDAOImpl instance = null;
-    private static final int ERROR_CODE_CONCURRENCE = 1062;
-    private static final ConnectorToDatabase connectorToDatabase = ConnectorToDatabase.getInstance();
+    private static final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
     private UserDAOImpl() {}
 
     @Override
     public void addUser(User user) throws UserDAOException {
+        Transaction transaction = null;
         try(
-                ConnectionProxy connection = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connection
-                        .getRealConnection()
-                        .prepareStatement(SQLUsersQueries.ADD_USER);
+                Session session = sessionFactory.openSession();
         ) {
-            statement.setString(1, user.getFullName());
-            statement.setString(2, user.getEmail());
-            statement.setString(3, user.getPassword());
-            statement.setInt(4, user.getRole());
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            if (e.getErrorCode() == ERROR_CODE_CONCURRENCE) {
-                System.out.println("User with this e-mail is already exists!");
-            } else {
-                throw new UserDAOException("Problem with adding user", e.getCause());
+            transaction = session.beginTransaction();
+            session.persist(user);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
             }
+            throw new UserDAOException("Problems with adding new user!", e.getCause());
         }
     }
 
@@ -48,24 +42,10 @@ public class UserDAOImpl implements UserDAO {
     public User getUserByID(int id) throws UserDAOException {
         User user = null;
         try(
-                ConnectionProxy connection = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connection
-                        .getRealConnection()
-                        .prepareStatement(SQLUsersQueries.GET_USER)
+                Session session = sessionFactory.openSession()
         ) {
-            statement.setInt(1, id);
-            ResultSet rs = statement.executeQuery();
-
-            if(rs.next()) {
-                user = new User();
-                user.setId(rs.getInt(UsersColumnNames.COLUMN_USER_ID));
-                user.setFullName(rs.getString(UsersColumnNames.COLUMN_USER_FULLNAME));
-                user.setEmail(rs.getString(UsersColumnNames.COLUMN_USER_EMAIL));
-                user.setPassword(rs.getString(UsersColumnNames.COLUMN_USER_PASSWORD));
-                user.setUserRole(rs.getInt(UsersColumnNames.COLUMN_USER_ROLE_ID));
-            }
-        } catch (SQLException e) {
+            user = session.find(User.class, id);
+        } catch (Exception e) {
             throw new UserDAOException("Problems with getting user by id", e.getCause());
         }
         return user;
@@ -75,23 +55,14 @@ public class UserDAOImpl implements UserDAO {
     public List<User> getAllUsers() throws UserDAOException {
         List<User> userList = new ArrayList<>();
         try(
-                ConnectionProxy connection = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connection
-                        .getRealConnection()
-                        .prepareStatement(SQLUsersQueries.GET_ALL_USERS)
+                Session session = sessionFactory.openSession();
         ) {
-            ResultSet rs = statement.executeQuery();
-            while (rs.next()) {
-                User user = new User();
-                user.setId(rs.getInt(UsersColumnNames.COLUMN_USER_ID));
-                user.setFullName(rs.getString(UsersColumnNames.COLUMN_USER_FULLNAME));
-                user.setEmail(rs.getString(UsersColumnNames.COLUMN_USER_EMAIL));
-                user.setPassword(rs.getString(UsersColumnNames.COLUMN_USER_PASSWORD));
-                user.setUserRole(rs.getInt(UsersColumnNames.COLUMN_USER_ROLE_ID));
-                userList.add(user);
-            }
-        } catch (SQLException e) {
+            CriteriaBuilder cb = session.getCriteriaBuilder();
+            CriteriaQuery<User> cq = cb.createQuery(User.class);
+            Root<User> root = cq.from(User.class);
+            cq.select(root);
+            userList = session.createQuery(cq).getResultList();
+        } catch (Exception e) {
             throw new UserDAOException("Problems with getting all users", e.getCause());
         }
         return userList;
@@ -99,36 +70,37 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public void updateUser(User user) throws UserDAOException {
+        Transaction transaction = null;
         try(
-                ConnectionProxy connection = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connection
-                        .getRealConnection()
-                        .prepareStatement(SQLUsersQueries.UPDATE_USER)
-                ) {
-            statement.setString(1, user.getFullName());
-            statement.setString(2, user.getEmail());
-            statement.setString(3, user.getPassword());
-            statement.setInt(4, user.getRole());
-            statement.setInt(5, user.getId());
-            statement.executeUpdate();
-        } catch (SQLException e) {
+                Session session = sessionFactory.openSession();
+        ) {
+            transaction = session.beginTransaction();
+            session.merge(user);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new UserDAOException("Problems with updating user information", e.getCause());
         }
     }
 
     @Override
     public void deleteUserByID(int id) throws UserDAOException {
+        Transaction transaction = null;
         try (
-                ConnectionProxy connection = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connection
-                        .getRealConnection()
-                        .prepareStatement(SQLUsersQueries.DELETE_USER)
+                Session session = sessionFactory.openSession();
         ) {
-            statement.setInt(1, id);
-            statement.executeUpdate();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            User user = session.find(User.class, id);
+            if (user != null) {
+                session.remove(user);
+            }
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             throw new UserDAOException("Problems with deleting user", e.getCause());
         }
     }
@@ -137,24 +109,15 @@ public class UserDAOImpl implements UserDAO {
     public User getUserByEmail(String email) throws UserDAOException {
         User user = null;
         try (
-                ConnectionProxy connectionProxy = connectorToDatabase
-                        .getConnection();
-                PreparedStatement statement = connectionProxy
-                        .getRealConnection()
-                        .prepareStatement(SQLUsersQueries.GET_USER_BY_EMAIL)
+                Session session = sessionFactory.openSession();
         ) {
-            statement.setString(1, email);
-            ResultSet rs = statement.executeQuery();
-            if (rs.next()) {
-                user = new User();
-                user.setId(rs.getInt(UsersColumnNames.COLUMN_USER_ID));
-                user.setFullName(rs.getString(UsersColumnNames.COLUMN_USER_FULLNAME));
-                user.setEmail(rs.getString(UsersColumnNames.COLUMN_USER_EMAIL));
-                user.setPassword(rs.getString(UsersColumnNames.COLUMN_USER_PASSWORD));
-                user.setUserRole(rs.getInt(UsersColumnNames.COLUMN_USER_ROLE_ID));
-            }
-        } catch ( SQLException e) {
-            throw new UserDAOException("Problems with getting user by e-mail");
+            CriteriaBuilder cb = session.getCriteriaBuilder();
+            CriteriaQuery<User> cq = cb.createQuery(User.class);
+            Root<User> root = cq.from(User.class);
+            cq.select(root).where(cb.equal(root.get("user_email"), email));
+            user = session.createQuery(cq).uniqueResult();
+        } catch ( Exception e) {
+            throw new UserDAOException(e.getMessage());
         }
         return user;
     }
